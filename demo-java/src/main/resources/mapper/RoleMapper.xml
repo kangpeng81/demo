@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.sys.RoleMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.demo.entity.sys.Role">
+        <id column="role_id" property="roleId"/>
+        <result column="role_name" property="roleName"/>
+        <result column="role_code" property="roleCode"/>
+        <result column="status" property="status"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        role_id, role_name, role_code, status, remark, create_time, update_time
+    </sql>
+
+    <!-- 列表查询条件（分页列表与 count 共享，保证口径一致） -->
+    <sql id="List_Where">
+        <where>
+            <if test="roleName != null and roleName != ''">
+                AND role_name LIKE CONCAT('%', #{roleName}, '%')
+            </if>
+            <if test="roleCode != null and roleCode != ''">
+                AND role_code = #{roleCode}
+            </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectPage" parameterType="com.example.demo.entity.sys.Role" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_role
+        <include refid="List_Where"/>
+        ORDER BY role_id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="count" parameterType="com.example.demo.entity.sys.Role" resultType="long">
+        SELECT COUNT(*)
+        FROM t_role
+        <include refid="List_Where"/>
+    </select>
+
+    <insert id="insert" parameterType="com.example.demo.entity.sys.Role"
+            useGeneratedKeys="true" keyProperty="roleId">
+        INSERT INTO t_role (role_name, role_code, status, remark)
+        VALUES (#{roleName}, #{roleCode}, #{status}, #{remark})
+    </insert>
+
+    <update id="update" parameterType="com.example.demo.entity.sys.Role">
+        UPDATE t_role
+        <set>
+            <if test="roleName != null">role_name = #{roleName},</if>
+            <if test="roleCode != null">role_code = #{roleCode},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        WHERE role_id = #{roleId}
+    </update>
+
+    <delete id="deleteById" parameterType="long">
+        DELETE FROM t_role WHERE role_id = #{roleId}
+    </delete>
+
+</mapper>

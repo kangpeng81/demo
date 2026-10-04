@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.sys.UserRoleMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.demo.entity.sys.UserRole">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="role_id" property="roleId"/>
+        <result column="user_name" property="userName"/>
+        <result column="role_name" property="roleName"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        ur.id, ur.user_id, ur.role_id, u.username AS user_name, r.role_name
+    </sql>
+
+    <!-- 列表查询条件（分页列表与 count 共享，保证口径一致） -->
+    <sql id="List_Where">
+        <where>
+            <if test="userId != null">
+                AND ur.user_id = #{userId}
+            </if>
+            <if test="roleId != null">
+                AND ur.role_id = #{roleId}
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectList" parameterType="com.example.demo.entity.sys.UserRole" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_user_role ur
+        LEFT JOIN t_user u ON u.user_id = ur.user_id
+        LEFT JOIN t_role r ON r.role_id = ur.role_id
+        <include refid="List_Where"/>
+        ORDER BY ur.id ASC
+    </select>
+
+    <select id="selectPage" parameterType="com.example.demo.entity.sys.UserRole" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_user_role ur
+        LEFT JOIN t_user u ON u.user_id = ur.user_id
+        LEFT JOIN t_role r ON r.role_id = ur.role_id
+        <include refid="List_Where"/>
+        ORDER BY ur.id ASC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="count" parameterType="com.example.demo.entity.sys.UserRole" resultType="long">
+        SELECT COUNT(*)
+        FROM t_user_role ur
+        <include refid="List_Where"/>
+    </select>
+
+    <insert id="insert" parameterType="com.example.demo.entity.sys.UserRole"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_user_role (user_id, role_id)
+        VALUES (#{userId}, #{roleId})
+    </insert>
+
+    <delete id="deleteById" parameterType="long">
+        DELETE FROM t_user_role WHERE id = #{id}
+    </delete>
+
+    <delete id="deleteByUserId" parameterType="long">
+        DELETE FROM t_user_role WHERE user_id = #{userId}
+    </delete>
+
+    <select id="selectRoleIdsByUserId" resultType="java.lang.Long">
+        SELECT role_id FROM t_user_role WHERE user_id = #{userId}
+    </select>
+
+    <select id="selectRoleCodesByUserId" resultType="java.lang.String">
+        SELECT DISTINCT r.role_code
+        FROM t_user_role ur
+        INNER JOIN t_role r ON r.role_id = ur.role_id
+        WHERE ur.user_id = #{userId}
+          AND r.status = 1
+    </select>
+
+    <!--
+      查询用户拥有的所有按钮权限点。
+      说明：t_menu 表 type=3 为按钮型菜单，其 path 字段存储权限点编码；
+      一个按钮可能含多个权限点，以分号分隔，此处先取原始 path，
+      再在 Java 侧按 ; 展开为权限点列表。
+    -->
+    <select id="selectPermsByUserId" resultType="java.lang.String">
+        SELECT DISTINCT m.path
+        FROM t_user_role ur
+        INNER JOIN t_role r ON r.role_id = ur.role_id AND r.status = 1
+        INNER JOIN t_role_menu rm ON rm.role_id = ur.role_id
+        INNER JOIN t_menu m ON m.menu_id = rm.menu_id
+        WHERE ur.user_id = #{userId}
+          AND m.type = 3
+          AND m.status = 1
+          AND m.path IS NOT NULL
+          AND m.path != ''
+    </select>
+
+</mapper>
