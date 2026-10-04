@@ -14,12 +14,16 @@
         <result column="age" property="age"/>
         <result column="name" property="name"/>
         <result column="status" property="status"/>
+        <result column="province" property="province"/>
+        <result column="city" property="city"/>
+        <result column="district" property="district"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
     </resultMap>
 
     <sql id="Base_Column_List">
-        user_id, username, password, salt, nickname, email, phone, age, name, status, create_time, update_time
+        user_id, username, password, salt, nickname, email, phone, age, name, status,
+        province, city, district, create_time, update_time
     </sql>
 
     <!-- 列表查询条件（分页列表与 count 共享，保证口径一致） -->
@@ -33,6 +37,16 @@
             </if>
             <if test="status != null">
                 AND status = #{status}
+            </if>
+            <!-- 数据权限：省/市/区过滤（由 DataPermission 切面注入） -->
+            <if test="province != null and province != ''">
+                AND province = #{province}
+            </if>
+            <if test="city != null and city != ''">
+                AND city = #{city}
+            </if>
+            <if test="district != null and district != ''">
+                AND district = #{district}
             </if>
         </where>
     </sql>
@@ -59,8 +73,9 @@
 
     <insert id="addUser" parameterType="com.example.demo.entity.sys.User"
             useGeneratedKeys="true" keyProperty="userId">
-        INSERT INTO t_user (username, password, salt, nickname, email, phone, age, name, status)
-        VALUES (#{userName}, #{password}, #{salt}, #{nickname}, #{email}, #{phone}, #{age}, #{name}, #{status})
+        INSERT INTO t_user (username, password, salt, nickname, email, phone, age, name, status, province, city, district)
+        VALUES (#{userName}, #{password}, #{salt}, #{nickname}, #{email}, #{phone}, #{age}, #{name}, #{status},
+                #{province}, #{city}, #{district})
     </insert>
 
     <update id="updatePasswordByUsername" parameterType="com.example.demo.entity.sys.User">
@@ -78,6 +93,9 @@
             <if test="age != null">age = #{age},</if>
             <if test="name != null">name = #{name},</if>
             <if test="status != null">status = #{status},</if>
+            <if test="province != null">province = #{province},</if>
+            <if test="city != null">city = #{city},</if>
+            <if test="district != null">district = #{district},</if>
         </set>
         WHERE user_id = #{userId}
     </update>

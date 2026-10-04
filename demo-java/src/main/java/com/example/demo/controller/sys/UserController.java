@@ -2,6 +2,7 @@ package com.example.demo.controller.sys;
 
 import cn.dev33.satoken.annotation.SaCheckPermission;
 import cn.dev33.satoken.stp.StpUtil;
+import com.example.demo.annotation.DataPermission;
 import com.example.demo.common.PageResult;
 import com.example.demo.common.ResultUtils;
 import com.example.demo.config.SaTokenConfig;
@@ -58,6 +59,7 @@ public class UserController {
 
     @PostMapping("/queryUser")
     @SaCheckPermission("user:query")
+    @DataPermission(provinceField = "province", cityField = "city", districtField = "district")
     public ResultUtils queryUser(@RequestBody(required = false) User query) {
         PageResult<User> result = userService.queryUserPage(query == null ? new User() : query);
         return ResultUtils.success("success", result);

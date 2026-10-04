@@ -19,6 +19,9 @@ CREATE TABLE t_user (
     age         INT          DEFAULT NULL COMMENT '年龄',
     name        VARCHAR(64)  DEFAULT NULL COMMENT '真实姓名',
     status      TINYINT      NOT NULL DEFAULT 1 COMMENT '状态 1-正常 0-禁用',
+    province    VARCHAR(64)  DEFAULT NULL COMMENT '省（数据权限维度）',
+    city        VARCHAR(64)  DEFAULT NULL COMMENT '市（数据权限维度）',
+    district    VARCHAR(64)  DEFAULT NULL COMMENT '区/县（数据权限维度）',
     create_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (user_id),
@@ -96,10 +99,10 @@ INSERT INTO t_role (role_code, role_name, remark) VALUES
     ('user',  '普通用户',   '只读权限');
 
 -- 用户表测试数据（密码 123456 的 BCrypt 加密值）
-INSERT INTO t_user (username, password, nickname, name, age, status) VALUES
-    ('zhangsan', '$2a$10$78QJwVRJcM3fUFoJziKSJ.UNIlD9e/.CcR0W9AAnw/uFt4NED9w8i', '张三', '张三', 25, 1),
-    ('lisi',     '$2a$10$78QJwVRJcM3fUFoJziKSJ.UNIlD9e/.CcR0W9AAnw/uFt4NED9w8i', '李四', '李四', 30, 1),
-    ('wangwu',   '$2a$10$78QJwVRJcM3fUFoJziKSJ.UNIlD9e/.CcR0W9AAnw/uFt4NED9w8i', '王五', '王五', 28, 1);
+INSERT INTO t_user (username, password, nickname, name, age, status, province, city, district) VALUES
+    ('zhangsan', '$2a$10$78QJwVRJcM3fUFoJziKSJ.UNIlD9e/.CcR0W9AAnw/uFt4NED9w8i', '张三', '张三', 25, 1, NULL, NULL, NULL),
+    ('lisi',     '$2a$10$78QJwVRJcM3fUFoJziKSJ.UNIlD9e/.CcR0W9AAnw/uFt4NED9w8i', '李四', '李四', 30, 1, '广东省', NULL, NULL),
+    ('wangwu',   '$2a$10$78QJwVRJcM3fUFoJziKSJ.UNIlD9e/.CcR0W9AAnw/uFt4NED9w8i', '王五', '王五', 28, 1, '广东省', '深圳市', '南山区');
 
 -- 用户-角色绑定：zhangsan=admin，lisi/wangwu=user
 INSERT INTO t_user_role (user_id, role_id) VALUES

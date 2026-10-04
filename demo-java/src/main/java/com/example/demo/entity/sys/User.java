@@ -30,6 +30,15 @@ public class User extends PageQuery {
 
     private Integer status;
 
+    /** 省（数据权限维度） */
+    private String province;
+
+    /** 市（数据权限维度） */
+    private String city;
+
+    /** 区/县（数据权限维度） */
+    private String district;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;

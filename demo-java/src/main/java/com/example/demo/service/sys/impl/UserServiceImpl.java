@@ -1,6 +1,7 @@
 package com.example.demo.service.sys.impl;
 
 import cn.dev33.satoken.stp.StpUtil;
+import com.example.demo.aspect.DataPermissionAspect;
 import com.example.demo.common.PageResult;
 import com.example.demo.entity.sys.User;
 import com.example.demo.entity.sys.UserRole;
@@ -78,6 +79,9 @@ public class UserServiceImpl implements UserService {
         }
 
         StpUtil.login(user.getUserId());
+
+        // 将用户省/市/区归属写入 session，供 @DataPermission 切面读取
+//        DataPermissionAspect.setUserRegionToSession(user.getProvince(), user.getCity(), user.getDistrict());
 
         user.setPassword(null);
         return user;
