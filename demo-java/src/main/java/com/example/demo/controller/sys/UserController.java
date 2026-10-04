@@ -59,11 +59,19 @@ public class UserController {
 
     @PostMapping("/queryUser")
     @SaCheckPermission("user:query")
-    @DataPermission(provinceField = "province", cityField = "city", districtField = "district")
     public ResultUtils queryUser(@RequestBody(required = false) User query) {
         PageResult<User> result = userService.queryUserPage(query == null ? new User() : query);
         return ResultUtils.success("success", result);
     }
+
+    @PostMapping("/queryUserPerm")
+    @SaCheckPermission("user:query")
+    @DataPermission(provinceField = "province", cityField = "city", districtField = "district")
+    public ResultUtils queryUserPerm(@RequestBody(required = false) User query) {
+        PageResult<User> result = userService.queryUserPage(query == null ? new User() : query);
+        return ResultUtils.success("success", result);
+    }
+
 
     @PostMapping("/addUser")
     @SaCheckPermission("user:addUser")
