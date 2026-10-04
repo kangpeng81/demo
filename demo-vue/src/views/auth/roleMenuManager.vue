@@ -176,7 +176,7 @@ onMounted(() => {
 
     <el-card class="table-card" shadow="never">
       <div class="toolbar">
-         <el-button v-if="hasPerm('roleMenu:addRoleMenu')" type="primary" @click="openAdd">新增关联</el-button>
+        <el-button v-if="hasPerm('roleMenu:addRoleMenu')" type="primary" @click="openAdd">新增关联</el-button>
         <el-button v-perm="'roleMenu:addRoleMenu'" type="primary" @click="openAdd">新增关联</el-button>
       </div>
       <el-table v-loading="loading" :data="tableList" stripe border style="width: 100%">
