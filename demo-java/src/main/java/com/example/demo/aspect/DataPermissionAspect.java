@@ -49,6 +49,9 @@ public class DataPermissionAspect {
         String userProvince = "userProvince1";
         String userCity ="userCity2";
         String userDistrict = "userDistrict3";
+        //  city 1,2
+        //  2,3
+        //  city 2
 
         // 3. 通过反射把过滤值写入查询参数（按注解配置的字段名）
         Object query = args[0];
