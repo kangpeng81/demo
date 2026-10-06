@@ -1,6 +1,7 @@
-CREATE DATABASE IF NOT EXISTS travl DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+-- 库名与应用实际连接保持一致（application.properties: spring.datasource.url ... /demo）
+CREATE DATABASE IF NOT EXISTS demo DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
-USE travl;
+USE demo;
 
 -- ============================ 表结构 ============================
 
@@ -22,6 +23,8 @@ CREATE TABLE t_user (
     province    VARCHAR(64)  DEFAULT NULL COMMENT '省（数据权限维度）',
     city        VARCHAR(64)  DEFAULT NULL COMMENT '市（数据权限维度）',
     district    VARCHAR(64)  DEFAULT NULL COMMENT '区/县（数据权限维度）',
+    dept_id     BIGINT       DEFAULT NULL COMMENT '所属部门（Casbin 文档权限的域载体）',
+    user_level  TINYINT      NOT NULL DEFAULT 1 COMMENT '人员级别 1-4，决定可访问最高文档密级（信息性字段）',
     create_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (user_id),
@@ -127,14 +130,137 @@ INSERT INTO t_menu (menu_id, parent_id, path, title, icon, type, sort) VALUES
     (8,  2, '', '用户删除', 'Delete', 3, 4),
     (9,  3, '', '角色查询', 'Search', 3, 1),
     (10, 3, '', '角色授权', 'Lock',   3, 2);
+-- menu_id=11 文档权限管理页 + 12/13 按钮（Casbin 五维文档权限）
+INSERT INTO t_menu (menu_id, parent_id, path, title, icon, type, sort) VALUES
+    (11, 3, '/auth/docPerm', '文档权限管理', 'Document', 2, 40),
+    (12, 11, '', '查询文档', 'Search', 3, 1),
+    (13, 11, '', '文档授权', 'Key',    3, 2);
 
 -- 角色-菜单：admin 拥有全部菜单
 INSERT INTO t_role_menu (role_id, menu_id) VALUES
     (1, 1), (1, 2), (1, 3), (1, 4),
-    (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10);
--- 角色-菜单：user 只能看系统管理 + 用户管理 + 用户查询按钮
+    (1, 5), (1, 6), (1, 7), (1, 8), (1, 9), (1, 10),
+    (1, 11), (1, 12), (1, 13);
+-- 角色-菜单：user 只能看系统管理 + 用户管理 + 用户查询按钮 + 文档权限管理
 INSERT INTO t_role_menu (role_id, menu_id) VALUES
-    (2, 1), (2, 2), (2, 5);
+    (2, 1), (2, 2), (2, 5), (2, 11), (2, 12), (2, 13);
+
+-- ----------------------------
+-- 部门表（Casbin 文档权限的「域」载体，含部门领导人）
+-- ----------------------------
+DROP TABLE IF EXISTS t_dept;
+CREATE TABLE t_dept (
+    dept_id        BIGINT      NOT NULL AUTO_INCREMENT COMMENT '部门ID',
+    dept_name      VARCHAR(64) NOT NULL COMMENT '部门名称',
+    parent_id      BIGINT      NOT NULL DEFAULT 0 COMMENT '上级部门ID，0为根',
+    leader_user_id BIGINT      DEFAULT NULL COMMENT '部门领导人 user_id',
+    province       VARCHAR(64) DEFAULT NULL COMMENT '省',
+    city           VARCHAR(64) DEFAULT NULL COMMENT '市',
+    district       VARCHAR(64) DEFAULT NULL COMMENT '区/县',
+    status         TINYINT     NOT NULL DEFAULT 1 COMMENT '状态 1-正常 0-禁用',
+    create_time    DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (dept_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '部门表';
+
+-- ----------------------------
+-- 文档表（Casbin 五维权限控制的资源：文档类型 × 操作 × 密级 × 角色 × 部门）
+-- ----------------------------
+DROP TABLE IF EXISTS t_doc;
+CREATE TABLE t_doc (
+    doc_id      BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    title       VARCHAR(200) NOT NULL COMMENT '文档标题',
+    content     TEXT         COMMENT '文档内容',
+    obj         VARCHAR(32)  NOT NULL DEFAULT 'doc' COMMENT '资源类型 doc-文档 contract-合同（Casbin obj 维度，可扩展）',
+    doc_level   TINYINT      NOT NULL DEFAULT 1 COMMENT '密级 1-公开 2-部门 3-部门机密 4-区域',
+    dept_id     BIGINT       NOT NULL COMMENT '归属部门ID（Casbin 域）',
+    creator_id  BIGINT       NOT NULL COMMENT '创建人ID',
+    province    VARCHAR(64)  DEFAULT NULL COMMENT '省（区域权限维度，继承创建人）',
+    city        VARCHAR(64)  DEFAULT NULL COMMENT '市（区域权限维度，继承创建人）',
+    district    VARCHAR(64)  DEFAULT NULL COMMENT '区/县（区域权限维度，继承创建人）',
+    create_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (doc_id),
+    KEY idx_dept (dept_id),
+    KEY idx_creator (creator_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '文档表';
+
+-- ----------------------------
+-- 菜单-部门可见性关联表（无记录=全员可见；有记录=仅关联部门可见）
+-- ----------------------------
+DROP TABLE IF EXISTS t_menu_dept;
+CREATE TABLE t_menu_dept (
+    id      BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    menu_id BIGINT NOT NULL COMMENT '菜单ID',
+    dept_id BIGINT NOT NULL COMMENT '部门ID',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_menu_dept (menu_id, dept_id)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '菜单-部门可见性关联表';
+
+-- ----------------------------
+-- Casbin 策略表（自定义 CasbinJdbcAdapter 七列结构，官方 jdbc-adapter 硬编码六列不支持七元组）
+-- ptype: p=授权策略 g=部门角色挂载（leader/member，角色判定来源）
+-- 七元组策略: v0=sub v1=resId(资源实例ID) v2=obj(资源类型 doc/contract) v3=act v4=docLevel v5=role v6=dept（全部正则）
+-- ----------------------------
+DROP TABLE IF EXISTS casbin_rule;
+CREATE TABLE casbin_rule (
+    id    BIGINT       NOT NULL AUTO_INCREMENT,
+    ptype VARCHAR(16)  NOT NULL,
+    v0    VARCHAR(128) DEFAULT NULL,
+    v1    VARCHAR(128) DEFAULT NULL,
+    v2    VARCHAR(128) DEFAULT NULL,
+    v3    VARCHAR(128) DEFAULT NULL,
+    v4    VARCHAR(128) DEFAULT NULL,
+    v5    VARCHAR(128) DEFAULT NULL,
+    v6    VARCHAR(128) DEFAULT NULL,
+    PRIMARY KEY (id),
+    KEY idx_ptype (ptype)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = 'Casbin 策略存储表';
+
+-- ============================ 文档权限种子数据 ============================
+
+-- 增加一名普通成员（补充文档权限演示角色）
+INSERT INTO t_user (username, password, nickname, name, age, status, province, city, district) VALUES
+    ('zhaoliu', '$2a$10$78QJwVRJcM3fUFoJziKSJ.UNIlD9e/.CcR0W9AAnw/uFt4NED9w8i', '赵六', '赵六', 26, 1, '广东省', '深圳市', NULL);
+-- 用户-角色：zhaoliu=user
+INSERT INTO t_user_role (user_id, role_id) VALUES (4, 2);
+
+-- 用户-部门绑定：wangwu→深圳研发部(领导)，zhaoliu→深圳研发部(成员)，lisi→广州市场部(领导)
+UPDATE t_user SET dept_id = 1, user_level = 2 WHERE user_id = 3;
+UPDATE t_user SET dept_id = 1, user_level = 1 WHERE user_id = 4;
+UPDATE t_user SET dept_id = 2, user_level = 4 WHERE user_id = 2;
+
+-- 部门：深圳研发部（领导 wangwu）、广州市场部（领导 lisi）
+INSERT INTO t_dept (dept_id, dept_name, parent_id, leader_user_id, province, city, district) VALUES
+    (1, '深圳研发部', 0, 3, '广东省', '深圳市', '南山区'),
+    (2, '广州市场部', 0, 2, '广东省', '广州市', NULL);
+
+-- 文档：wangwu 创建 1-4（密级递增、资源类型含合同演示），lisi 创建 5（跨部门演示）
+INSERT INTO t_doc (doc_id, title, content, obj, doc_level, dept_id, creator_id, province, city, district) VALUES
+    (1, '入职指引',   '面向全员的基础指引',     'doc',      1, 1, 3, '广东省', '深圳市', NULL),
+    (2, '研发周报',   '本周研发进展汇总',       'doc',      2, 1, 3, '广东省', '深圳市', NULL),
+    (3, '薪资方案',   '敏感：薪酬调整方案',     'doc',      3, 1, 3, '广东省', '深圳市', NULL),
+    (4, '省级战略',   '省级战略合作备忘录',     'contract', 4, 1, 3, '广东省', '深圳市', NULL),
+    (5, '市场计划',   '广州市场部季度计划',     'doc',      2, 2, 2, '广东省', NULL, NULL);
+
+-- 菜单-部门：角色管理菜单仅深圳研发部可见
+INSERT INTO t_menu_dept (menu_id, dept_id) VALUES (3, 1);
+
+-- Casbin 策略种子（七元组模型：主体 × 资源ID × 资源类型 × 操作 × 密级 × 角色 × 部门，与省市区无关）
+-- g：部门角色挂载（leader/member），判定时由服务层解析为 r.role = leader|member|none
+INSERT INTO casbin_rule (ptype, v0, v1) VALUES
+    ('g', 'user:3', 'leader:dept:1'),
+    ('g', 'user:4', 'member:dept:1'),
+    ('g', 'user:2', 'leader:dept:2');
+-- p：七元组策略行，七字段全部正则匹配（v0=sub v1=resId v2=obj v3=act v4=docLevel v5=role v6=dept）
+--   领导：全部实例、全部资源（doc/contract）、全密级、全操作
+--   成员：全部实例、全部资源、只读 1-2 级
+INSERT INTO casbin_rule (ptype, v0, v1, v2, v3, v4, v5, v6) VALUES
+    ('p', '.*', '.*', '(doc|contract)', '^(read|write|delete|grant)$', '^[1-4]$', '^leader$', '.*'),
+    ('p', '.*', '.*', 'doc',            '^read$',                      '^(1|2)$', '^member$', '.*'),
+    ('p', '.*', '.*', 'contract',       '^read$',                      '^(1|2)$', '^member$', '.*');
+-- p：实例级显式授权行示例（user:10 仅对资源实例 4/7、dept:1 的 3 级可读；按需启用）
+-- INSERT INTO casbin_rule (ptype, v0, v1, v2, v3, v4, v5, v6) VALUES
+--     ('p', '^user:10$', '^(4|7)$', '^(doc)$', '^read$', '^(3)$', '.*', '^dept:1$');
 
 -- ============================ 各表 CRUD 示例 ============================
 

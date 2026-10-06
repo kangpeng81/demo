@@ -81,6 +81,13 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
+        <!-- Casbin 文档记录级数据权限：核心引擎（策略存储用自定义 CasbinJdbcAdapter，七列 v0~v6） -->
+        <dependency>
+            <groupId>org.casbin</groupId>
+            <artifactId>jcasbin</artifactId>
+            <version>1.55.0</version>
+        </dependency>
+
         <!-- BCrypt 密码加密 -->
         <dependency>
             <groupId>org.springframework.security</groupId>

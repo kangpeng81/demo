@@ -44,6 +44,12 @@ public class User extends PageQuery {
     /** 区/县（数据权限维度） */
     private String district;
 
+    /** 所属部门（Casbin 文档权限的域载体） */
+    private Long deptId;
+
+    /** 人员级别 1-4，决定可访问的最高文档密级（信息性字段） */
+    private Integer userLevel;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;

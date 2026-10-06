@@ -43,6 +43,12 @@ const routes = [
         component: () => import('../views/auth/roleMenuManager.vue'),
         meta: { title: '角色菜单列表' },
       },
+      {
+        path: 'auth/docPerm',
+        name: 'docPermManager',
+        component: () => import('../views/auth/docPermManager.vue'),
+        meta: { title: '文档权限管理' },
+      },
 
     ],
   },

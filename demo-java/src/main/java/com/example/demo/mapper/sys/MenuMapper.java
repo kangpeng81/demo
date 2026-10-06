@@ -19,6 +19,9 @@ public interface MenuMapper {
     /** 根据用户ID查询其有权限的所有菜单（扁平列表，含按钮） */
     List<Menu> selectByUserId(@Param("userId") Long userId);
 
+    /** 查询全部可见菜单（不含按钮），供超管绕过角色与部门可见性过滤 */
+    List<Menu> selectAllVisible();
+
     int insert(Menu menu);
 
     int update(Menu menu);

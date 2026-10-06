@@ -85,8 +85,8 @@ public class UserServiceImpl implements UserService {
 
         StpUtil.login(user.getUserId());
 
-        // 将用户省/市/区归属写入 session，供 @DataPermission 切面读取
-//        DataPermissionAspect.setUserRegionToSession(user.getProvince(), user.getCity(), user.getDistrict());
+        // 将用户省/市/区归属写入 session，供 @DataPermission 切面与文档区域标注读取
+        DataPermissionAspect.setUserRegionToSession(user.getProvince(), user.getCity(), user.getDistrict());
 
         user.setPassword(null);
         return user;

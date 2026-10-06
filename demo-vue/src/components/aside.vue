@@ -1,7 +1,7 @@
 <template>
   <el-row class="tac">
     <el-col :span="24">
-      <h5 class="mb-2">{{ isCollapse ? 'DIDI' : 'DIDI培诊' }}</h5>
+      <h5 class="mb-2">{{ isCollapse ? 'demo' : 'demo' }}</h5>
       <el-menu active-text-color="#ffd04b" background-color="#545c64" class="el-menu-vertical-demo" default-active="2"
         text-color="#fff" @open="handleOpen" @close="handleClose">
         <MenuItem v-for="item in menuData" :key="item.path" :item="item" />
@@ -35,62 +35,7 @@ defineProps({
 // 菜单数据：type 为 submenu(子菜单) / group(分组)，无 type 即普通菜单项
 // icon 直接放图标组件，disabled 控制禁用
 const menuData = [
-  {
-    index: '1',
-    title: '控制台',
-    icon: Monitor,
-  },
-  {
-    index: '2',
-    title: '系统管理',
-    icon: Grid,
-    type: 'submenu',
-    children: [
-      {
-        index: '2-1',
-        icon: UserFilled,
-        title: '用户管理',
-      },
-      {
-        index: '2-2',
-        icon: User,
-        title: '角色管理',
-      },
-      {
-        index: '2-3',
-        icon: Menu,
-        title: '菜单管理',
-      },
-      {
-        index: '2-4',
-        icon: Connection,
-        title: '用户角色列表',
-      },
-      {
-        index: '2-5',
-        icon: Share,
-        title: '角色菜单',
-      },
-    ],
-  },
-  {
-    index: '3',
-    title: 'DIDI培诊',
-    icon: Tickets,
-    type: 'submenu',
-    children: [
-      {
-        index: '3-1',
-        icon: User,
-        title: '陪护管理',
-      },
-      {
-        index: '3-2',
-        icon: Tickets,
-        title: '订单管理',
-      },
-    ],
-  },
+
 ]
 
 const handleOpen = (key, keyPath) => {

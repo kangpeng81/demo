@@ -5,6 +5,7 @@
  */
 package com.example.demo.service.sys.impl;
 
+import cn.dev33.satoken.stp.StpUtil;
 import com.example.demo.entity.sys.Menu;
 import com.example.demo.entity.sys.MenuVO;
 import com.example.demo.mapper.sys.MenuMapper;
@@ -36,8 +37,10 @@ public class MenuServiceImpl implements MenuService {
 
     @Override
     public List<MenuVO> queryTreeByUserId(Long userId) {
-        // 1. 查扁平列表（已按 parent_id, sort 排序）
-        List<Menu> all = menuMapper.selectByUserId(userId);
+        // 超管：绕过角色绑定与部门可见性过滤，直接返回全部可见菜单
+        List<Menu> all = StpUtil.hasRole("admin")
+                ? menuMapper.selectAllVisible()
+                : menuMapper.selectByUserId(userId);
         if (all == null || all.isEmpty()) {
             return new ArrayList<>();
         }

@@ -38,7 +38,8 @@
         ORDER BY parent_id ASC, sort ASC, menu_id ASC
     </select>
 
-    <!-- 根据用户ID查询其有权限的所有菜单（不含按钮 type=3），用于构造左侧菜单树 -->
+    <!-- 根据用户ID查询其有权限的所有菜单（不含按钮 type=3），用于构造左侧菜单树
+         并叠加部门可见性：t_menu_dept 无记录的菜单全员可见；有记录的仅关联部门可见 -->
     <select id="selectByUserId" resultMap="BaseResultMap">
         SELECT DISTINCT m.menu_id, m.parent_id, m.path, m.title, m.icon, m.type, m.sort, m.status
         FROM t_user_role ur
@@ -47,7 +48,24 @@
         WHERE ur.user_id = #{userId}
           AND m.type IN (1, 2)
           AND m.status = 1
+          AND (
+                NOT EXISTS (SELECT 1 FROM t_menu_dept md WHERE md.menu_id = m.menu_id)
+                OR EXISTS (
+                    SELECT 1 FROM t_menu_dept md
+                    WHERE md.menu_id = m.menu_id
+                      AND md.dept_id = (SELECT u.dept_id FROM t_user u WHERE u.user_id = #{userId})
+                )
+              )
         ORDER BY m.parent_id ASC, m.sort ASC, m.menu_id ASC
+    </select>
+
+    <!-- 超管专用：全部可见菜单（不含按钮），绕过角色与部门可见性过滤 -->
+    <select id="selectAllVisible" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_menu
+        WHERE type IN (1, 2)
+          AND status = 1
+        ORDER BY parent_id ASC, sort ASC, menu_id ASC
     </select>
 
     <insert id="insert" parameterType="com.example.demo.entity.sys.Menu"

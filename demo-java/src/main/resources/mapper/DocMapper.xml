@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.sys.DocMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.demo.entity.sys.Doc">
+        <id column="doc_id" property="docId"/>
+        <result column="title" property="title"/>
+        <result column="content" property="content"/>
+        <result column="obj" property="obj"/>
+        <result column="doc_level" property="docLevel"/>
+        <result column="dept_id" property="deptId"/>
+        <result column="creator_id" property="creatorId"/>
+        <result column="province" property="province"/>
+        <result column="city" property="city"/>
+        <result column="district" property="district"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        doc_id, title, content, obj, doc_level, dept_id, creator_id,
+        province, city, district, create_time, update_time
+    </sql>
+
+    <!--
+      区域过滤（由 DataPermission 切面注入查看者的省/市/区）：
+      语义为「查看者可看自己区域内、且区域标注不细于自己层级的文档」：
+        - 省级查看者：该省全部文档（含市/区级标注）
+        - 市级查看者：本省文档中，市标注为空（省级文档）或等于本市的
+        - 区级查看者：在本市范围内，区标注为空（省/市级文档）或等于本区的
+    -->
+    <sql id="List_Where">
+        <where>
+            <if test="title != null and title != ''">
+                AND title LIKE CONCAT('%', #{title}, '%')
+            </if>
+            <if test="obj != null and obj != ''">
+                AND obj = #{obj}
+            </if>
+            <if test="docLevel != null">
+                AND doc_level = #{docLevel}
+            </if>
+            <if test="deptId != null">
+                AND dept_id = #{deptId}
+            </if>
+            <if test="province != null and province != ''">
+                AND province = #{province}
+                <if test="city != null and city != ''">
+                    AND (city IS NULL OR city = #{city})
+                </if>
+                <if test="district != null and district != ''">
+                    AND (district IS NULL OR district = #{district})
+                </if>
+            </if>
+        </where>
+    </sql>
+
+    <select id="queryDocList" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_doc
+        <include refid="List_Where"/>
+        ORDER BY doc_id DESC
+    </select>
+
+    <select id="findDocById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM t_doc
+        WHERE doc_id = #{docId}
+    </select>
+
+    <insert id="insertDoc" parameterType="com.example.demo.entity.sys.Doc"
+            useGeneratedKeys="true" keyProperty="docId">
+        INSERT INTO t_doc (title, content, obj, doc_level, dept_id, creator_id, province, city, district)
+        VALUES (#{title}, #{content}, #{obj}, #{docLevel}, #{deptId}, #{creatorId}, #{province}, #{city}, #{district})
+    </insert>
+
+    <update id="updateDoc" parameterType="com.example.demo.entity.sys.Doc">
+        UPDATE t_doc
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="obj != null">obj = #{obj},</if>
+            <if test="docLevel != null">doc_level = #{docLevel},</if>
+        </set>
+        WHERE doc_id = #{docId}
+    </update>
+
+    <delete id="deleteDocById" parameterType="long">
+        DELETE FROM t_doc WHERE doc_id = #{docId}
+    </delete>
+
+</mapper>

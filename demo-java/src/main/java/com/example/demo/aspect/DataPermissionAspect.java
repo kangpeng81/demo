@@ -33,10 +33,10 @@ import java.lang.reflect.Field;
 @Component
 public class DataPermissionAspect {
 
-    /** 登录用户在 sa-token session 中存储省/市/区的 key */
-    private static final String SESSION_PROVINCE = "dataScope:province";
-    private static final String SESSION_CITY = "dataScope:city";
-    private static final String SESSION_DISTRICT = "dataScope:district";
+    /** 登录用户在 sa-token session 中存储省/市/区的 key（DocServiceImpl 标注文档区域时复用） */
+    public static final String SESSION_PROVINCE = "dataScope:province";
+    public static final String SESSION_CITY = "dataScope:city";
+    public static final String SESSION_DISTRICT = "dataScope:district";
 
     @Around("@annotation(dataPermission)")
     public Object around(ProceedingJoinPoint joinPoint, DataPermission dataPermission) throws Throwable {
@@ -46,12 +46,14 @@ public class DataPermissionAspect {
         }
 
         // 1. 读取当前登录用户的省/市/区归属（登录时写入 session）
-        String userProvince = "userProvince1";
-        String userCity ="userCity2";
-        String userDistrict = "userDistrict3";
-        //  city 1,2
-        //  2,3
-        //  city 2
+        String userProvince = getSessionValue(SESSION_PROVINCE);
+        String userCity = getSessionValue(SESSION_CITY);
+        String userDistrict = getSessionValue(SESSION_DISTRICT);
+
+        // 2. 超级管理员（无省归属）不注入任何过滤条件
+        if (isEmpty(userProvince)) {
+            return joinPoint.proceed();
+        }
 
         // 3. 通过反射把过滤值写入查询参数（按注解配置的字段名）
         Object query = args[0];
@@ -102,10 +104,16 @@ public class DataPermissionAspect {
         return s == null || s.trim().isEmpty();
     }
 
-    /** 供登录时写入用户省/市/区归属到 sa-token session */
+    /** 供登录时写入用户省/市/区归属到 sa-token session；null 值会被跳过（SaSession 基于 ConcurrentHashMap，不支持 null） */
     public static void setUserRegionToSession(String province, String city, String district) {
-        StpUtil.getSession().set(SESSION_PROVINCE, province);
-        StpUtil.getSession().set(SESSION_CITY, city);
-        StpUtil.getSession().set(SESSION_DISTRICT, district);
+        if (province != null) {
+            StpUtil.getSession().set(SESSION_PROVINCE, province);
+        }
+        if (city != null) {
+            StpUtil.getSession().set(SESSION_CITY, city);
+        }
+        if (district != null) {
+            StpUtil.getSession().set(SESSION_DISTRICT, district);
+        }
     }
 }

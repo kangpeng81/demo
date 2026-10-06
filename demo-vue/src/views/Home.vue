@@ -120,7 +120,7 @@ const handleRemoveMenu = (item) => {
       <el-aside class="aside" :class="{ 'is-collapse': isCollapse }">
         <el-row class="tac">
           <el-col :span="24">
-            <h5 class="mb-2">{{ isCollapse ? 'DIDI' : 'DIDI培诊' }}</h5>
+            <h5 class="mb-2">{{ isCollapse ? 'demo' : 'demo' }}</h5>
             <el-menu active-text-color="#ffd04b" background-color="#545c64" class="el-menu-vertical-demo"
               text-color="#fff" :collapse="isCollapse" :default-active="activeIndex" @open="handleOpen" @close="handleClose">
               <MenuItem v-for="item in menuData" :key="item.path" :item="item" @item-click="handleMenuClick" />
